@@ -5,13 +5,39 @@ import threading
 import pywhatkit as kt
 from reportlab.pdfgen.canvas import Canvas
 import base64
+import os
+import json
 
 
-path_to_tesseract = r"C:\Program Files\Tesseract-OCR/tesseract.exe"
+#tesseract_path = r"C:\Program Files\Tesseract-OCR/tesseract.exe"
+def json_func() :
 
-def img_reader(imgpath):
+    with open('app.json') as user_file:
+        file_contents = user_file.read()
+
+    file_contents=file_contents.replace('{"tesseract_path": "','' )
+    file_contents=file_contents.replace('"}','' )
+    file_contents=file_contents.replace('"','' )
+
+    if os.path.exists(file_contents) is True:
+        return file_contents
+    else:
+        print("_____TESSERACT SETUP_____")
+        print("ENTER THE TESSERACT PATH TO CONTINUE.")
+        tesseract_path=str(input())
+        with open('app.json', 'r') as f:
+            json_data = json.load(f)
+        json_data['tesseract_path'] = tesseract_path
+
+        with open('app.json', 'w') as f:
+            f.write(json.dumps(json_data))
+    
+
+
+
+def img_reader(imgpath, tesseract_path):
     img = Image.open(imgpath)
-    pytesseract.tesseract_cmd = path_to_tesseract 
+    pytesseract.tesseract_cmd = tesseract_path 
     text = pytesseract.image_to_string(img) 
     print(text)
 
@@ -24,13 +50,6 @@ def qr_reader(img_path):
         return data
     else:
         return None
-
-
-def content(image_path:str):    
-    if qr_reader(image_path) is not None:
-        return qr_reader(image_path)
-    else:
-        return img_reader(image_path)
 
 def save(data:str , com:str) -> None:
     if 'pdf' in com:
@@ -62,7 +81,7 @@ def main() -> None:
             if bbox is not None:
                 stat=data
             else:
-                stat=img_reader(command)
+                stat=img_reader(command,json_func())
             print(stat)
 
             print("CHOOSE AN OPERATION TO PERFORM WITH THIS TEXT.[enter Q to exit]")
@@ -80,10 +99,8 @@ def main() -> None:
                     if 'text -share' in command:
                         num=str(input('enter number :'))
                         kt.sendwhatmsg(num, stat)
-                    if command=='Q':
-                        break
-                    
-                    if command=='new':
+
+                    if command=='Q' or command=='new':
                         main()
 
         elif 'img -encode' in command:
@@ -102,15 +119,25 @@ def main() -> None:
                         main()
                     else:
                         pass
-        else:
-                pass
         
+        else:
+            pass
+
+
+    elif zero=='info':
+        print("For extracting text from image: \n extract text -img <address>" )
+        print("For encoding image : \n img -encode <address>")
+        print("To search the extracted text : \n text -search")
+        print("To save the extracted text as pdf or txt : \n text -save as <address>")
+        print("To share the extracted text : \n text -share")
+
     else:
             pass
 
     
 
 if __name__=='__main__':
+    json_func()
     print("WELCOME TO IMG EXTRACTOR : ")
     while True:
         main()
