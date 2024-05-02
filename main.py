@@ -2,44 +2,47 @@ from PIL import Image
 from pytesseract import pytesseract
 import cv2 
 import threading
-import pywhatkit as kt
-from reportlab.pdfgen.canvas import Canvas
+import pywhatkit as pwk
+from reportlab.lib.pagesizes import A4
+from reportlab.platypus import Paragraph
+from reportlab.platypus import SimpleDocTemplate as sdt
+from reportlab.lib.units import cm
 import base64
 import os
 import json
+from datetime import datetime
 
 
 #tesseract_path = r"C:\Program Files\Tesseract-OCR/tesseract.exe"
-def json_func() :
+def jfunc() :
 
-    with open('app.json') as user_file:
-        file_contents = user_file.read()
+    with open('app.json') as jsonfile:
+        adres = jsonfile.read()
 
-    file_contents=file_contents.replace('{"tesseract_path": "','' )
-    file_contents=file_contents.replace('"}','' )
-    file_contents=file_contents.replace('"','' )
+    adres=adres.replace('{"tesseract_path": "','' )
+    adres=adres.replace('"}','' )
+    adres=adres.replace('"','' )
 
-    if os.path.exists(file_contents) is True:
-        return file_contents
+    if os.path.exists(adres) is True:
+        return adres
     else:
         print("_____TESSERACT SETUP_____")
         print("ENTER THE TESSERACT PATH TO CONTINUE.")
         tesseract_path=str(input())
         with open('app.json', 'r') as f:
-            json_data = json.load(f)
-        json_data['tesseract_path'] = tesseract_path
+            jsondata = json.load(f)
+        jsondata['tesseract_path'] = tesseract_path
 
         with open('app.json', 'w') as f:
-            f.write(json.dumps(json_data))
+            f.write(json.dumps(jsondata))
     
-
 
 
 def img_reader(imgpath, tesseract_path):
     img = Image.open(imgpath)
     pytesseract.tesseract_cmd = tesseract_path 
     text = pytesseract.image_to_string(img) 
-    print(text)
+    return text
 
 def qr_reader(img_path):
     img = cv2.imread(img_path)
@@ -51,17 +54,19 @@ def qr_reader(img_path):
     else:
         return None
 
-def save(data:str , com:str) -> None:
+def save(text:str , com:str) -> None:
     if 'pdf' in com:
         command=com.replace("text -save as ",'')
-        canvas = Canvas(command)
-        canvas.drawString(0, 0, data)
+        fl = sdt(command,pagesize=A4,
+                        rightMargin=2*cm,leftMargin=2*cm,
+                        topMargin=2*cm,bottomMargin=2*cm)
+        fl.build([Paragraph(text),])
         return None
     
     elif 'txt' in com:
         command=com.replace("text -save as ",'')
         with open(command, 'w') as f:
-            f.write(data)
+            f.write(text)
         return None
 
 
@@ -81,7 +86,7 @@ def main() -> None:
             if bbox is not None:
                 stat=data
             else:
-                stat=img_reader(command,json_func())
+                stat=img_reader(command,jfunc())
             print(stat)
 
             print("CHOOSE AN OPERATION TO PERFORM WITH THIS TEXT.[enter Q to exit]")
@@ -89,33 +94,45 @@ def main() -> None:
                     command=str(input())
 
                     if 'text -search' in command:
-                        kt.search(stat)
+                        pwk.search(stat)
+                        print("Searching....")
                         continue
 
                     if 'text -save' in command:
                         save(stat,command)
                         print('file saved')
+                        continue
                     
                     if 'text -share' in command:
                         num=str(input('enter number :'))
-                        kt.sendwhatmsg(num, stat)
+                        t= datetime.now()
+                        print("do not close the window before confirmation message.")
+                        if t.second<=35:
+                            pwk.sendwhatmsg(num, stat,t.hour,t.minute+2)
+                        else:
+                            pwk.sendwhatmsg(num, stat,t.hour,t.minute+1)
+                        print("Message Sent !!!")
+                        continue
 
                     if command=='Q' or command=='new':
+                        print("Instance ended, type \"start\" to continue")
                         main()
 
         elif 'img -encode' in command:
 
                 with open(command.replace('img -encode ', ''), "rb") as image2string: 
-                    converted_string = base64.b64encode(image2string.read()) 
-                print(converted_string)
+                    stat = base64.b64encode(image2string.read()) 
+                print(stat)
 
                 while True:
 
                     command=str(input())
                     if 'text -save' in command:
-                        save(stat,command)
-                        print('file saved')
-                    if command=='new':
+                        save(str(stat),command)
+                        print("file saved !!")
+                        
+                    if command=='new' or command=='Q':
+                        print("Instance ended, type \"start\" to continue")
                         main()
                     else:
                         pass
@@ -124,7 +141,7 @@ def main() -> None:
             pass
 
 
-    elif zero=='info':
+    elif zero=='use':
         print("For extracting text from image: \n extract text -img <address>" )
         print("For encoding image : \n img -encode <address>")
         print("To search the extracted text : \n text -search")
@@ -137,7 +154,7 @@ def main() -> None:
     
 
 if __name__=='__main__':
-    json_func()
-    print("WELCOME TO IMG EXTRACTOR : ")
+    jfunc()
+    
     while True:
         main()
