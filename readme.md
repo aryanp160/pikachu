@@ -1,4 +1,4 @@
-reads images from images qr
+reads text from images qr
 can save file in pdf ot txt forms
 can search and share extracted texto
 
