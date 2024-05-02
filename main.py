@@ -71,7 +71,7 @@ def save(text:str , com:str) -> None:
 
 
 def main() -> None:
-    
+    print("Enter start to continue.")
     zero=str(input())
     if zero=='start' or zero=='Start':
         command=str(input())
@@ -141,7 +141,7 @@ def main() -> None:
             pass
 
 
-    elif zero=='use':
+    elif zero=='info':
         print("For extracting text from image: \n extract text -img <address>" )
         print("For encoding image : \n img -encode <address>")
         print("To search the extracted text : \n text -search")
